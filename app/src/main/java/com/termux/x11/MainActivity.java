@@ -76,9 +76,29 @@ import com.termux.x11.utils.X11ToolbarViewPager;
 import java.util.Map;
 import java.util.Objects;
 
+// Added imports
+import android.widget.TextView;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
+
 @SuppressLint("ApplySharedPref")
 @SuppressWarnings({"deprecation", "unused"})
 public class MainActivity extends AppCompatActivity implements View.OnApplyWindowInsetsListener {
+
+    // variables for debugging:
+    private String keyMessage = "No Input";
+    private String wsStatus = "Connecting...";
+    public String debugString = "hello ;  debug trace";
+
+    private TextView statusTextView;
+    private TextView messageTextView;
+
+    private TextView debugTextView;
+    private WebSocket webSocket;
+
     static final String ACTION_STOP = "com.termux.x11.ACTION_STOP";
     static final String REQUEST_LAUNCH_EXTERNAL_DISPLAY = "request_launch_external_display";
 
@@ -139,6 +159,144 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         return instance;
     }
 
+    public void updateUI() {
+        runOnUiThread(() -> {
+            debugTextView.setText(debugString);
+        });
+    }
+
+    private void initializeWebSocket() {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder().url("ws://localhost:8089").build(); // Adjust the URL as necessary
+        webSocket = client.newWebSocket(request, new WebSocketListener() {
+            @Override
+            public void onOpen(WebSocket webSocket, okhttp3.Response response) {
+                debugString = "Connected";
+                updateUI();
+            }
+
+            @Override
+            public void onFailure(WebSocket webSocket, Throwable t, okhttp3.Response response) {
+                debugString = "Failed: " + t.getMessage();
+                updateUI();
+            }
+
+            @Override
+            public void onClosing(WebSocket webSocket, int code, String reason) {
+                debugString = "Closing: " + reason;
+                updateUI();
+            }
+
+            @Override
+            public void onClosed(WebSocket webSocket, int code, String reason) {
+                debugString = "Closed: " + reason;
+                updateUI();
+            }
+        });
+
+        client.dispatcher().executorService().shutdown();
+    }
+
+    public void sendMessage(String message) {
+        webSocket.send(message);
+    }
+
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        // Check that the event came from a game controller or joystick
+
+        if ((event.getSource() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK &&
+                event.getAction() == MotionEvent.ACTION_MOVE) {
+
+            // Example: Capture the x and y axis of the joystick
+            float x = event.getAxisValue(MotionEvent.AXIS_X);
+            float y = event.getAxisValue(MotionEvent.AXIS_Y);
+
+            String message = String.format("Joystick Move - X: %f, Y: %f", x, y);
+            sendMessage(message);
+            return true;
+        } else if (event.getAction() == MotionEvent.ACTION_BUTTON_PRESS) {
+            // Assuming you have a way to identify the button (this is speculative)
+            int buttonId = event.getActionButton();
+            sendMessage("Button Press Detected: " + buttonId);
+            return true;
+        }
+        return super.onGenericMotionEvent(event);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // This method handles both the joystick and the button press events.
+        // For buttons like A, B, X, Y, their key events are captured here.
+        debugString = "key pressed; keycode is: " + keyCode;
+        updateUI();
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+                sendMessage("Button A pressed");
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_B:
+                sendMessage("Button B pressed");
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_X:
+                sendMessage("Button X pressed");
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_Y:
+                sendMessage("Button Y pressed");
+                return true;
+            default:
+                sendMessage("Button " + keyCode + "pressed");
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+
+        // catch all, surely this should work..
+        int action = event.getAction();
+        int keyCode = event.getKeyCode();
+        debugString = "key pressed; keycode is: " + keyCode;
+        updateUI();
+        sendMessage("key pressed keycode is " + keyCode);
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+                if (action == KeyEvent.ACTION_DOWN) {
+                    // Handle button A press
+                    sendMessage("Button A pressed");
+                }
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_B:
+                // Handle other buttons similarly
+                return true;
+            default:
+                return super.dispatchKeyEvent(event);
+        }
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        debugString = "key released; keycode is: " + keyCode;
+        updateUI();
+
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+                sendMessage("Button A released");
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_B:
+                sendMessage("Button B releaed");
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_X:
+                sendMessage("Button X released");
+                return true;
+            case KeyEvent.KEYCODE_BUTTON_Y:
+                sendMessage("Button Y released");
+                return true;
+            default:
+                sendMessage("Button " + keyCode + "released");
+        }
+        return super.onKeyUp(keyCode, event);
+    }
+
     @Override
     @SuppressLint({"AppCompatMethod", "ObsoleteSdkInt", "ClickableViewAccessibility", "WrongConstant", "UnspecifiedRegisterReceiverFlag"})
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,12 +316,19 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.main_activity);
 
+        // can we set up and update some debug text?
+        debugTextView = findViewById(R.id.textView);
+        Log.d("error", "textview found is " + debugTextView);
+        updateUI();
+
+
         frm = findViewById(R.id.frame);
         findViewById(R.id.preferences_button).setOnClickListener((l) -> startActivity(new Intent(this, LoriePreferences.class) {{ setAction(Intent.ACTION_MAIN); }}));
         findViewById(R.id.help_button).setOnClickListener((l) -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/termux/termux-x11/blob/master/README.md#running-graphical-applications"))));
 
         LorieView lorieView = findViewById(R.id.lorieView);
         View lorieParent = (View) lorieView.getParent();
+
 
         mInputHandler = new TouchInputHandler(this, new RenderStub.NullStub() {
             @Override
@@ -172,6 +337,10 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
             }
         }, new InputEventSender(lorieView));
         mLorieKeyListener = (v, k, e) -> {
+            Log.d("debug", "a key was pressed!!!! " + k);
+            debugString = "key pressed: " + k;
+            updateUI();
+            sendMessage("key pressed: " + k);
             if (hideEKOnVolDown && k == KEYCODE_VOLUME_DOWN) {
                 if (e.getAction() == ACTION_UP)
                     toggleExtraKeys();
@@ -246,12 +415,18 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
                 && !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
             requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS }, 0);
         }
+
+        // start up our websocket connection
+        initializeWebSocket();
     }
 
     @Override
     protected void onDestroy() {
         unregisterReceiver(receiver);
         super.onDestroy();
+        if (webSocket != null) {
+            webSocket.close(1000, "Activity destroyed");
+        }
     }
 
     //Register the needed events to handle stylus as left, middle and right click

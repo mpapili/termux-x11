@@ -34,19 +34,13 @@
             android:orientation="vertical"
             android:visibility="visible">
 
-            <ImageView
-                android:id="@+id/x11_image"
-                android:layout_width="130dp"
-                android:layout_height="130dp"
-                android:scaleType="fitCenter"
-                app:srcCompat="@drawable/ic_x11_icon"
-                android:contentDescription="X Logo"
-                tools:ignore="HardcodedText" />
-
-            <Space
+            <TextView
+                android:id="@+id/debugTextView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="20dp" />
+                android:minHeight="20dp"
+                android:text="placeholder"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/textView"
@@ -56,6 +50,24 @@
                 android:text="@string/not_connected"
                 android:textColor="#FFFFFF"
                 android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal|center_vertical"
+                android:text="@string/not_connected"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp" />
+
+            <ImageView
+                android:id="@+id/x11_image"
+                android:layout_width="130dp"
+                android:layout_height="130dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/ic_x11_icon"
+                android:contentDescription="X Logo"
+                tools:ignore="HardcodedText" />
 
             <Space
                 android:layout_width="match_parent"
