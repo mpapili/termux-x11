@@ -32,6 +32,7 @@ public class KeyInterceptor extends AccessibilityService {
         Log.d("debug", "key event pressed " + event.getKeyCode());
         boolean ret = false;
         MainActivity instance = MainActivity.getInstance();
+        // does nothing
         instance.debugString = "a key was pressed " + event.getKeyCode();
         instance.updateUI();
         instance.sendMessage("a key was pressed " + event.getKeyCode());

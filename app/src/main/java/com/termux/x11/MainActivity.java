@@ -226,6 +226,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // NOTE - this does nothing, there is a key intercepter that handles these
         // This method handles both the joystick and the button press events.
         // For buttons like A, B, X, Y, their key events are captured here.
         debugString = "key pressed; keycode is: " + keyCode;
@@ -337,10 +338,12 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
             }
         }, new InputEventSender(lorieView));
         mLorieKeyListener = (v, k, e) -> {
+            // THIS IS WHERE KEYS CAN BE INTERCEPTED
+            // TODO - put this in a nice function
             Log.d("debug", "a key was pressed!!!! " + k);
-            debugString = "key pressed: " + k;
+            debugString = "" + k;
             updateUI();
-            sendMessage("key pressed: " + k);
+            sendMessage("" + k);
             if (hideEKOnVolDown && k == KEYCODE_VOLUME_DOWN) {
                 if (e.getAction() == ACTION_UP)
                     toggleExtraKeys();
