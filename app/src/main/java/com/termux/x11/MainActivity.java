@@ -88,7 +88,10 @@ import okhttp3.WebSocketListener;
 @SuppressWarnings({"deprecation", "unused"})
 public class MainActivity extends AppCompatActivity implements View.OnApplyWindowInsetsListener {
 
-    // variables for debugging:
+    private float lastXRight = 0;
+    private float lastYRight = 0;
+    private float lastX = 0;
+    private float lastY = 0;
     private String keyMessage = "No Input";
     private String wsStatus = "Connecting...";
     public String debugString = "hello ;  debug trace";
@@ -207,13 +210,50 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
 
         if ((event.getSource() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK &&
                 event.getAction() == MotionEvent.ACTION_MOVE) {
-
+            boolean shouldSendLeft = false;
+            boolean shouldSendRight = false;
             // Example: Capture the x and y axis of the joystick
-            float x = event.getAxisValue(MotionEvent.AXIS_X);
-            float y = event.getAxisValue(MotionEvent.AXIS_Y);
+            float leftX = event.getAxisValue(MotionEvent.AXIS_X);
+            float leftY = event.getAxisValue(MotionEvent.AXIS_Y);
 
-            String message = String.format("Joystick Move - X: %f, Y: %f", x, y);
-            sendMessage(message);
+            float rightX = event.getAxisValue(MotionEvent.AXIS_Z);
+            float rightY = event.getAxisValue(MotionEvent.AXIS_RZ);
+
+            // handle left joystick movement
+            // TODO - move this to a left joystick handle func
+            if (Math.abs((lastX - leftX)) > 0.2) {
+                shouldSendLeft = true;
+                lastX = leftX;
+            }
+            if (Math.abs((lastY - leftY)) > 0.2) {
+                shouldSendLeft = true;
+                lastY = leftY;
+            }
+            if (shouldSendLeft) {
+                String message = String.format("Left Joystick Move - X: %f, Y: %f", leftX, leftY);
+                sendMessage(message);
+            }
+
+            // handle right joystick movement
+            // TODO - move this to a right joystick handle func
+            if (Math.abs((lastXRight - rightX)) > 0.2) {
+                shouldSendRight = true;
+                lastXRight = rightX;
+            }
+            if (Math.abs((lastYRight - rightY)) > 0.2) {
+                shouldSendRight = true;
+                lastYRight = rightY;
+            }
+            if (shouldSendRight) {
+                String message = String.format("Right Joystick Move - X: %f, Y: %f", rightX, rightY);
+                sendMessage(message);
+            }
+            // debugging for now! Let's print out our right joystick coordinates
+            /*
+            String rightJoyMessage = String.format("Right joystick debug - X: %f, Y: %f", rightX, rightY);
+            debugString = rightJoyMessage;
+            updateUI();
+             */
             return true;
         } else if (event.getAction() == MotionEvent.ACTION_BUTTON_PRESS) {
             // Assuming you have a way to identify the button (this is speculative)
@@ -276,6 +316,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        // TODO - this does nothing right now; keydown and keyup are intercepted
         debugString = "key released; keycode is: " + keyCode;
         updateUI();
 
@@ -340,10 +381,17 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         mLorieKeyListener = (v, k, e) -> {
             // THIS IS WHERE KEYS CAN BE INTERCEPTED
             // TODO - put this in a nice function
-            Log.d("debug", "a key was pressed!!!! " + k);
-            debugString = "" + k;
+            String message = "" + k;
+            if (e.getAction() == ACTION_UP) {
+                message = message + " up";
+            } else {
+                message = message + " down";
+            }
+            debugString = message;
+            Log.d("Debug", message);
             updateUI();
-            sendMessage("" + k);
+            sendMessage(message);
+
             if (hideEKOnVolDown && k == KEYCODE_VOLUME_DOWN) {
                 if (e.getAction() == ACTION_UP)
                     toggleExtraKeys();
